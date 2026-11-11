@@ -1,0 +1,46 @@
+# Pasta Oro del Sud · sito + gestionale ordini Ho.Re.Ca. (Cloudflare Worker)
+name = "orodelsud"
+main = "src/index.js"
+compatibility_date = "2025-09-01"
+workers_dev = true
+preview_urls = true
+
+# File statici (area clienti, pannello, stili, immagini). Le pagine del sito le genera il Worker.
+[assets]
+directory = "./public"
+binding = "ASSETS"
+html_handling = "auto-trailing-slash"
+not_found_handling = "none"
+
+# Database D1: al primo deploy Cloudflare lo crea da solo (nessun ID da copiare).
+# Tabelle, catalogo e impostazioni si creano alla prima visita.
+[[d1_databases]]
+binding = "DB"
+database_name = "orodelsud-db"
+
+# Foto dei prodotti caricate dal pannello: bucket R2 creato automaticamente al primo deploy.
+[[r2_buckets]]
+binding = "IMAGES"
+bucket_name = "orodelsud-images"
+
+# Promemoria "ordina entro le…" ai clienti: ogni 30 minuti.
+[triggers]
+crons = ["*/30 * * * *"]
+
+[observability]
+enabled = true
+
+[vars]
+# Lascia vuoto APP_URL finché non colleghi il dominio: i link usano l'indirizzo da cui si visita il sito.
+APP_URL = ""
+EMAIL_FROM = "Pasta Oro del Sud <ordini@orodelsud.it>"
+VAPID_SUBJECT = "mailto:info@orodelsud.it"
+# Impronta (PBKDF2) della password del pannello /admin/: la password in chiaro non è nel codice.
+# Per cambiarla: node scripts/hash-password.mjs "nuova password" e sostituisci il valore,
+# oppure imposta su Cloudflare il secret ADMIN_PASSWORD (ha la precedenza).
+ADMIN_PASSWORD_HASH = "pbkdf2$100000$cjLe51Ya3TeINM5miKQJLw$oaQK1A_qhHqrh5a9zB0CrkOCnZn3BCKLCB4BD0fltO4"
+
+# Secret facoltativi (Cloudflare → Worker → Settings → Variables and Secrets), MAI qui:
+#   RESEND_API_KEY      email automatiche (nuovi ordini, conferme, inviti)
+#   ADMIN_PASSWORD      per cambiare la password del pannello senza toccare il codice
+# Le chiavi per le notifiche push si generano da sole al primo avvio e restano nel database.
